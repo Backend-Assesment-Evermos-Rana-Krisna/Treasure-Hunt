@@ -1,7 +1,5 @@
 <?php
     class TreasureHunt {
-        private $gridColumn = 8; 
-        private $gridRow = 6; 
         private $coord = [
             ["#","#","#","#","#","#","#","#"],
             ["#",".",".",".",".",".",".","#"],
@@ -12,11 +10,12 @@
         ];
         private $clearPath = [];
         private $position, $treasure;
+        private $found = false;
         
         function __construct()
         {
             $this->treasure = new stdClass();
-            
+
             $this->position = new stdClass();
             $this->position->row = 4;
             $this->position->column = 1;
@@ -35,6 +34,7 @@
                 if($this->coord[$posY][$posX] == "."){
                     $this->treasure->row = $posY;
                     $this->treasure->column = $posX;
+                    $this->coord[$posY][$posX] = "\e[1;32m$\e[0m";
                     break;
                 }
             }
@@ -66,13 +66,24 @@
              * END navigate by user from starting position by order
              */ 
 
-            // // generate probable coord points where the treasure might be localted
-            echo PHP_EOL."===============".PHP_EOL;
-            echo "Probable Treasure Locations: ".PHP_EOL.$this->_setProbableTreasureCoord($up, $right, $down);
+            // // // generate probable coord points where the treasure might be localted
+            // echo PHP_EOL."===============".PHP_EOL;
+            // echo "Probable Treasure Locations: ".PHP_EOL.$this->_setProbableTreasureCoord($up, $right, $down);
             
+            // // generate grid after navigate position by user
+            // echo PHP_EOL."===============".PHP_EOL;
+            // $this->_generateGrid();
+            echo PHP_EOL."============================".PHP_EOL;
+            echo "Probable Treasure Locations: ".PHP_EOL.$this->_setProbableTreasureCoord($up, $right, $down).PHP_EOL;
+
             // generate grid after navigate position by user
-            echo PHP_EOL."===============".PHP_EOL;
-            $this->_generateGrid();
+            echo PHP_EOL."============================".PHP_EOL;
+            if ($this->found == true) {
+                echo "Wohooo!!! Congratulations, You found the treasure...".PHP_EOL;
+            } else {
+                echo "Sorry, You have not made it, please try again...".PHP_EOL;
+            }
+            echo $this->_generateGrid();
         }
 
         /**
@@ -85,6 +96,9 @@
                 switch($navigate) {
                     case "right":
                         $currColumn = ($this->position->column + 1);
+                        if($currColumn == $this->treasure->column && $this->position->row == $this->treasure->row){
+                            $this->found = true;
+                        }
                         if($currColumn >= 0) {
                             if($this->coord[$this->position->row][$currColumn] == ".") {
                                 $this->coord[$this->position->row][$currColumn] = "\e[0;31mX\e[0m";
@@ -101,6 +115,9 @@
                     case "down":
                         $currRow = ($this->position->row - 1);
                         if($navigate == "down") $currRow = ($this->position->row + 1);
+                        if($this->position->column == $this->treasure->column && $currRow == $this->treasure->row){
+                            $this->found = true;
+                        }
                         
                         if($currRow >= 0) {
                             if($this->coord[$currRow][$this->position->column] == ".") {
@@ -136,7 +153,7 @@
                 $listTreasureCoord[] = "({$coord->row}, {$coord->column})";
                 $this->coord[$coord->row][$coord->column] = "\e[1;37m$\e[0m"; // set symbol "$" for treasure coord from clearPath
             }
-            $this->coord[$this->treasure->row][$this->treasure->column] = "\e[1;32m$\e[0m"; // set symbol "$" for treasure coord from clearPath
+            $this->coord[$this->treasure->row][$this->treasure->column] = "\e[1;32m".($this->found == true ? 'X':'$')."\e[0m";
             return implode(PHP_EOL, $listTreasureCoord);
         }
 
