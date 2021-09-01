@@ -9,12 +9,11 @@
         function __construct()
         {
             $this->_setGridValues();
+            $this->_generateGrid();
         }
 
         public function startHunt()
         {
-            $this->_generateGrid();
-
             /**
              * BEGIN navigate by user from starting position by order
              * Up/North = A step(s)
@@ -26,18 +25,14 @@
              */ 
             echo PHP_EOL."===============".PHP_EOL;
             
-            // navigate how many step for Up/North
             echo "Navigate position (step): ".PHP_EOL;
-            echo "Up/North: ";
-            $up = (int) trim(fgets(STDIN));
 
+            // navigate how many step for Up/North
+            $up = $this->_readInput('Up/North');
             // navigate how many step for Right/East
-            echo "Right/East: ";
-            $right = (int) trim(fgets(STDIN));
-
+            $right = $this->_readInput('Right/East');
             // navigate how many step for Down/South
-            echo "Down/South: ";
-            $down = (int) trim(fgets(STDIN));
+            $down = $this->_readInput('Down/South');
 
             /**
              * END navigate by user from starting position by order
@@ -45,7 +40,7 @@
 
             // // generate probable coord points where the treasure might be localted
             echo PHP_EOL."===============".PHP_EOL;
-            echo "Probable Treasure Locations: ".$this->_setProbableTreasureCoord($up, $right, $down);
+            echo "Probable Treasure Locations: ".PHP_EOL.$this->_setProbableTreasureCoord($up, $right, $down);
             
             // generate grid after navigate position by user
             echo PHP_EOL."===============".PHP_EOL;
@@ -82,7 +77,7 @@
 
                     // BEGIN set starting position
                     else if($i == 4 && $j == 1) {
-                        $this->coord[$i][$j] = "X";
+                        $this->coord[$i][$j] = "\e[0;31mX\e[0m";
 
                         $userPosition = new stdClass();
                         $userPosition->row = $i;
@@ -115,7 +110,7 @@
                         $currColumn = ($this->currUserPosition->column + 1);
                         if($currColumn >= 0) {
                             if($this->coord[$this->currUserPosition->row][$currColumn] == ".") {
-                                $this->coord[$this->currUserPosition->row][$currColumn] = 'X';
+                                $this->coord[$this->currUserPosition->row][$currColumn] = "\e[0;31mX\e[0m";
                                 $this->currUserPosition->column = $currColumn;
 
                                 // delete coord from clearPathCoord
@@ -132,7 +127,7 @@
                         
                         if($currRow >= 0) {
                             if($this->coord[$currRow][$this->currUserPosition->column] == ".") {
-                                $this->coord[$currRow][$this->currUserPosition->column] = 'X';
+                                $this->coord[$currRow][$this->currUserPosition->column] = "\e[0;31mX\e[0m";
                                 $this->currUserPosition->row = $currRow;
 
                                 // delete coord from clearPathCoord
@@ -163,9 +158,9 @@
             $listTreasureCoord = [];
             foreach($this->clearPathCoord as $key => $coord) {
                 $listTreasureCoord[] = "({$coord->row}, {$coord->column})";
-                $this->coord[$coord->row][$coord->column] = "$"; // set symbol "$" for treasure coord from clearPathCoord
-            }                       
-            return implode(', ', $listTreasureCoord);
+                $this->coord[$coord->row][$coord->column] = "\e[0;32m$\e[0m"; // set symbol "$" for treasure coord from clearPathCoord
+            }
+            return implode(PHP_EOL, $listTreasureCoord);
         }
 
         /**
@@ -177,10 +172,27 @@
                 for($j = 0; $j < $this->gridColumn; $j++) {
                     echo $this->coord[$i][$j];
                     if($j == ($this->gridColumn - 1)) {
-                        echo PHP_EOL;
+                        echo PHP_EOL."";
                     }
                 }
             }
+        }
+
+        private function _readInput($label) 
+        {
+            echo $label.": ";
+            while(true)
+            {
+                $input = trim(fgets(STDIN));
+                if(preg_match('{^[0-9]{1}$}',$input) == false)
+                {
+                    echo "\e[0;31mWrong Input ".$label."! Must number 0-9 and 1 digit\e[0m".PHP_EOL;
+                    echo $label.': ';
+                    continue;
+                }
+                break;
+            }
+            return $input;
         }
     }
 ?>
