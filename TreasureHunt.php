@@ -13,12 +13,9 @@
         function __construct(array $options = [])
         {
             $this->treasure = new stdClass();
-
             $this->position = new stdClass();
-            $this->position->row = 4;
-            $this->position->column = 1;
 
-            $this->_generatePlayerPosition();
+            $this->_generatePlayerPosition(4, 1);
             $this->_generateRandomTreasure(count($options) > 1 && $options[1] == "treasure" ? true : false);
             $this->_generateGrid();
         }
@@ -37,6 +34,13 @@
                     }
                     break;
                 }
+            }
+        }
+
+        private function _isTreasureFound($row, $column)
+        {
+            if($column == $this->treasure->column && $row == $this->treasure->row){
+                $this->found = true;
             }
         }
 
@@ -65,36 +69,17 @@
                 switch($navigate) {
                     case "right":
                         $currColumn = ($this->position->column + 1);
-                        if($currColumn == $this->treasure->column && $this->position->row == $this->treasure->row){
-                            $this->found = true;
-                        }
+                        $this->_isTreasureFound($this->position->row, $currColumn);
                         if($currColumn >= 0) {
-                            if($this->coord[$this->position->row][$currColumn] == ".") {
-                                $this->coord[$this->position->row][$currColumn] = "\e[0;31mX\e[0m";
-                                $this->position->column = $currColumn;
-
-                                if(array_key_exists($this->position->row."::".$currColumn, $this->clearPath)) {
-                                    unset($this->clearPath[$this->position->row."::".$currColumn]);
-                                }
-                            }
+                            $this->_generatePlayerPosition($this->position->row, $currColumn);
                         }
                         break;
                     case "up":
                     case "down":
-                        $currRow = ($this->position->row - 1);
-                        if($navigate == "down") $currRow = ($this->position->row + 1);
-                        if($this->position->column == $this->treasure->column && $currRow == $this->treasure->row){
-                            $this->found = true;
-                        }
+                        $currRow = ($navigate == "down") ? ($this->position->row + 1) : ($this->position->row - 1);
+                        $this->_isTreasureFound($currRow, $this->position->column);
                         if($currRow >= 0) {
-                            if($this->coord[$currRow][$this->position->column] == ".") {
-                                $this->coord[$currRow][$this->position->column] = "\e[0;31mX\e[0m";
-                                $this->position->row = $currRow;
-
-                                if(array_key_exists($currRow."::".$this->position->column, $this->clearPath)) {
-                                    unset($this->clearPath[$currRow."::".$this->position->column]);
-                                }
-                            }
+                            $this->_generatePlayerPosition($currRow, $this->position->column);
                         }
                         break;
                 }
@@ -111,9 +96,10 @@
             $listTreasureCoord = [];
             foreach($this->clearPath as $key => $coord) {
                 $listTreasureCoord[] = "({$coord->row}, {$coord->column})";
-                $this->coord[$coord->row][$coord->column] = "\e[1;37m$\e[0m"; // set symbol "$" for treasure coord from clearPath
+                $this->coord[$coord->row][$coord->column] = "\e[1;37m$\e[0m";
             }
             $this->coord[$this->treasure->row][$this->treasure->column] = "\e[1;32m".($this->found == true ? 'X':'$')."\e[0m";
+
             return implode(PHP_EOL, $listTreasureCoord);
         }
 
@@ -134,10 +120,17 @@
             }
         }
 
-        private function _generatePlayerPosition()
+        private function _generatePlayerPosition($row, $column)
         {
-            if($this->coord[$this->position->row][$this->position->column] == "."){
-                $this->coord[$this->position->row][$this->position->column] = "\e[0;31mX\e[0m";
+            if($this->coord[$row][$column] == "."){
+                $this->coord[$row][$column] = "\e[0;31mX\e[0m";
+
+                $this->position->row = $row;
+                $this->position->column = $column;
+                
+                if(array_key_exists($row."::".$column, $this->clearPath)) {
+                    unset($this->clearPath[$row."::".$column]);
+                }
             }
         }
 
