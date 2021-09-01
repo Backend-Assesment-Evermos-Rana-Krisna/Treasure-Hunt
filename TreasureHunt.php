@@ -2,13 +2,24 @@
     class TreasureHunt {
         private $gridColumn = 8; 
         private $gridRow = 6; 
-        private $coord = [];
-        private $clearPathCoord = [];
-        private $currUserPosition = null;
+        private $coord = [
+            ["#","#","#","#","#","#","#","#"],
+            ["#",".",".",".",".",".",".","#"],
+            ["#",".","#","#","#",".",".","#"],
+            ["#",".",".",".",".","#",".","#"],
+            ["#",".","#",".",".",".",".","#"],
+            ["#","#","#","#","#","#","#","#"]
+        ];
+        private $clearPath = [];
+        private $position;
         
         function __construct()
         {
-            $this->_setGridValues();
+            $this->position = new stdClass();
+            $this->position->row = 4;
+            $this->position->column = 1;
+
+            $this->_generatePlayerPosition();
             $this->_generateGrid();
         }
 
@@ -47,57 +58,6 @@
             $this->_generateGrid();
         }
 
-
-        /**
-         * set grid coord values 
-         */
-        private function _setGridValues()
-        {
-            for($i = 0; $i < $this->gridRow; $i++) {
-                for($j = 0; $j < $this->gridColumn; $j++) {
-                    // BEGIN set obstacle for grid
-                    if(
-                        ($i == 0 || $i == ($this->gridRow - 1)) 
-                        && ($j >= 0 && $j < $this->gridColumn)
-                    ) {
-                        $this->coord[$i][$j] = "#";
-                    } else if(
-                        ($j == 0 || $j == ($this->gridColumn - 1)) 
-                        && ($i >= 0 && $i < $this->gridRow)
-                    ) {
-                        $this->coord[$i][$j] = "#";
-                    } else if($i == 2 && ($j >= 2 && $j <= 4)) {
-                        $this->coord[$i][$j] = "#";
-                    } else if($i == 3 && ($j == 4 || $j == 6)) {
-                        $this->coord[$i][$j] = "#";
-                    } else if($i == 4 && $j == 2) {
-                        $this->coord[$i][$j] = "#";
-                    }
-                    // END set obstacle for grid 
-
-                    // BEGIN set starting position
-                    else if($i == 4 && $j == 1) {
-                        $this->coord[$i][$j] = "\e[0;31mX\e[0m";
-
-                        $userPosition = new stdClass();
-                        $userPosition->row = $i;
-                        $userPosition->column = $j;
-                        $this->currUserPosition = $userPosition;
-                    }
-                    // END set starting position
-                    else {
-                        $this->coord[$i][$j] = ".";
-                        
-                        // add coord to clearPathCoord
-                        $clearPath = new stdClass();
-                        $clearPath->row = $i;
-                        $clearPath->column = $j;
-                        $this->clearPathCoord["{$clearPath->row}::{$clearPath->column}"] = $clearPath;
-                    }
-                }
-            }
-        }
-
         /**
          * change grid value coord according user navigate values
          * @param int $val the value from user navigate
@@ -107,32 +67,32 @@
             while($val != 0) {
                 switch($navigate) {
                     case "right":
-                        $currColumn = ($this->currUserPosition->column + 1);
+                        $currColumn = ($this->position->column + 1);
                         if($currColumn >= 0) {
-                            if($this->coord[$this->currUserPosition->row][$currColumn] == ".") {
-                                $this->coord[$this->currUserPosition->row][$currColumn] = "\e[0;31mX\e[0m";
-                                $this->currUserPosition->column = $currColumn;
+                            if($this->coord[$this->position->row][$currColumn] == ".") {
+                                $this->coord[$this->position->row][$currColumn] = "\e[0;31mX\e[0m";
+                                $this->position->column = $currColumn;
 
-                                // delete coord from clearPathCoord
-                                if(array_key_exists($this->currUserPosition->row."::".$currColumn, $this->clearPathCoord)) {
-                                    unset($this->clearPathCoord[$this->currUserPosition->row."::".$currColumn]);
+                                // delete coord from clearPath
+                                if(array_key_exists($this->position->row."::".$currColumn, $this->clearPath)) {
+                                    unset($this->clearPath[$this->position->row."::".$currColumn]);
                                 }
                             }
                         }
                         break;
                     case "up":
                     case "down":
-                        $currRow = ($this->currUserPosition->row - 1);
-                        if($navigate == "down") $currRow = ($this->currUserPosition->row + 1);
+                        $currRow = ($this->position->row - 1);
+                        if($navigate == "down") $currRow = ($this->position->row + 1);
                         
                         if($currRow >= 0) {
-                            if($this->coord[$currRow][$this->currUserPosition->column] == ".") {
-                                $this->coord[$currRow][$this->currUserPosition->column] = "\e[0;31mX\e[0m";
-                                $this->currUserPosition->row = $currRow;
+                            if($this->coord[$currRow][$this->position->column] == ".") {
+                                $this->coord[$currRow][$this->position->column] = "\e[0;31mX\e[0m";
+                                $this->position->row = $currRow;
 
-                                // delete coord from clearPathCoord
-                                if(array_key_exists($currRow."::".$this->currUserPosition->column, $this->clearPathCoord)) {
-                                    unset($this->clearPathCoord[$currRow."::".$this->currUserPosition->column]);
+                                // delete coord from clearPath
+                                if(array_key_exists($currRow."::".$this->position->column, $this->clearPath)) {
+                                    unset($this->clearPath[$currRow."::".$this->position->column]);
                                 }
                             }
                         }
@@ -154,11 +114,11 @@
             if($down) $this->_setCoordValuesByUserNavigate($down, "down");
 
             
-            // get list of probable treasure coord from clearPathCoord after user navigate process 
+            // get list of probable treasure coord from clearPath after user navigate process 
             $listTreasureCoord = [];
-            foreach($this->clearPathCoord as $key => $coord) {
+            foreach($this->clearPath as $key => $coord) {
                 $listTreasureCoord[] = "({$coord->row}, {$coord->column})";
-                $this->coord[$coord->row][$coord->column] = "\e[0;32m$\e[0m"; // set symbol "$" for treasure coord from clearPathCoord
+                $this->coord[$coord->row][$coord->column] = "\e[0;32m$\e[0m"; // set symbol "$" for treasure coord from clearPath
             }
             return implode(PHP_EOL, $listTreasureCoord);
         }
@@ -168,17 +128,29 @@
          */
         private function _generateGrid()
         {
-            for($i = 0; $i < $this->gridRow; $i++) {
-                for($j = 0; $j < $this->gridColumn; $j++) {
-                    echo $this->coord[$i][$j];
-                    if($j == ($this->gridColumn - 1)) {
-                        echo PHP_EOL."";
+            for ($x = 0; $x < count($this->coord); $x++) {
+                for ($y = 0; $y < count(max($this->coord)); $y++) {
+                    if($this->coord[$x][$y] == "." || $this->coord[$x][$y] == "$")
+                    {
+                        $clearPath = new stdClass();
+                        $clearPath->row = $x;
+                        $clearPath->column = $y;
+                        $this->clearPath["{$clearPath->row}::{$clearPath->column}"] = $clearPath;
                     }
+                    echo $this->coord[$x][$y];
                 }
+                echo PHP_EOL;
             }
         }
 
-        private function _readInput($label) 
+        private function _generatePlayerPosition()
+        {
+            if($this->coord[$this->position->row][$this->position->column] == "."){
+                $this->coord[$this->position->row][$this->position->column] = "\e[0;31mX\e[0m";
+            }
+        }
+
+        private function _readInput($label)
         {
             echo $label.": ";
             while(true)
