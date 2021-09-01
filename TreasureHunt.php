@@ -11,16 +11,33 @@
             ["#","#","#","#","#","#","#","#"]
         ];
         private $clearPath = [];
-        private $position;
+        private $position, $treasure;
         
         function __construct()
         {
+            $this->treasure = new stdClass();
+            
             $this->position = new stdClass();
             $this->position->row = 4;
             $this->position->column = 1;
 
             $this->_generatePlayerPosition();
+            $this->_generateRandomTreasure();
             $this->_generateGrid();
+        }
+
+        private function _generateRandomTreasure()
+        {
+            while(true)
+            {
+                $posY = rand(0,count($this->coord)-1);
+                $posX = rand(0,count(max($this->coord))-1);
+                if($this->coord[$posY][$posX] == "."){
+                    $this->treasure->row = $posY;
+                    $this->treasure->column = $posX;
+                    break;
+                }
+            }
         }
 
         public function startHunt()
@@ -113,13 +130,13 @@
             if($right) $this->_setCoordValuesByUserNavigate($right, "right");
             if($down) $this->_setCoordValuesByUserNavigate($down, "down");
 
-            
             // get list of probable treasure coord from clearPath after user navigate process 
             $listTreasureCoord = [];
             foreach($this->clearPath as $key => $coord) {
                 $listTreasureCoord[] = "({$coord->row}, {$coord->column})";
-                $this->coord[$coord->row][$coord->column] = "\e[0;32m$\e[0m"; // set symbol "$" for treasure coord from clearPath
+                $this->coord[$coord->row][$coord->column] = "\e[1;37m$\e[0m"; // set symbol "$" for treasure coord from clearPath
             }
+            $this->coord[$this->treasure->row][$this->treasure->column] = "\e[1;32m$\e[0m"; // set symbol "$" for treasure coord from clearPath
             return implode(PHP_EOL, $listTreasureCoord);
         }
 
