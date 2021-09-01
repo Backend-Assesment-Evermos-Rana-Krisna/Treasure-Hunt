@@ -12,7 +12,7 @@
         private $position, $treasure;
         private $found = false;
         
-        function __construct()
+        function __construct(array $options = [])
         {
             $this->treasure = new stdClass();
 
@@ -21,11 +21,11 @@
             $this->position->column = 1;
 
             $this->_generatePlayerPosition();
-            $this->_generateRandomTreasure();
+            $this->_generateRandomTreasure(count($options) > 1 && $options[1] == "treasure" ? true : false);
             $this->_generateGrid();
         }
 
-        private function _generateRandomTreasure()
+        private function _generateRandomTreasure($show = false)
         {
             while(true)
             {
@@ -34,7 +34,9 @@
                 if($this->coord[$posY][$posX] == "."){
                     $this->treasure->row = $posY;
                     $this->treasure->column = $posX;
-                    $this->coord[$posY][$posX] = "\e[1;32m$\e[0m";
+                    if($show == true){
+                        $this->coord[$posY][$posX] = "\e[1;32m$\e[0m";
+                    }
                     break;
                 }
             }
