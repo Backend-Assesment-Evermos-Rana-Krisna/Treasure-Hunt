@@ -45,8 +45,7 @@ Wohooo!!! Congratulations, You found the treasure...
   
 </pre>
 
-
-###How to run with docker
+### How to run with docker
 first create an image
 ```
 docker build -t evermos/treasure-hunt:latest .
