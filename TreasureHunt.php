@@ -8,7 +8,8 @@
             ["#",".","#",".",".",".",".","#"],
             ["#","#","#","#","#","#","#","#"]
         ];
-        private $clearPath = [], $position, $treasure, $found = false;
+        public $clearPath = [], $position, $treasure, $found = false;
+        public $treasureIcon = "\e[1;32m$\e[0m", $clearPathIcon = ".";
         
         function __construct(array $options = [])
         {
@@ -17,6 +18,8 @@
 
             $this->_generatePlayerPosition(4, 1);
             $this->_generateRandomTreasure(count($options) > 1 && $options[1] == "treasure" ? true : false);
+
+            echo "      TREASURE HUNT ".PHP_EOL;
             $this->_generateGrid();
         }
 
@@ -24,13 +27,11 @@
         {
             while(true)
             {
-                $posY = rand(0,count($this->coord)-1);
-                $posX = rand(0,count(max($this->coord))-1);
-                if($this->coord[$posY][$posX] == "."){
-                    $this->treasure->row = $posY;
-                    $this->treasure->column = $posX;
+                $this->treasure->row = rand(0,count($this->coord)-1);
+                $this->treasure->column = rand(0,count(max($this->coord))-1);
+                if($this->coord[$this->treasure->row][$this->treasure->column] == $this->clearPathIcon){
                     if($show == true){
-                        $this->coord[$posY][$posX] = "\e[1;32m$\e[0m";
+                        $this->coord[$this->treasure->row][$this->treasure->column] = $this->treasureIcon;
                     }
                     break;
                 }
@@ -46,7 +47,7 @@
 
         public function startHunt()
         {
-            echo PHP_EOL."===============".PHP_EOL;
+            echo PHP_EOL."============================".PHP_EOL;
             echo "Navigate position (step): ".PHP_EOL;
             $up = $this->_readInput('Up/North');
             $right = $this->_readInput('Right/East');
@@ -54,6 +55,8 @@
 
             echo PHP_EOL."============================".PHP_EOL;
             echo "Probable Treasure Locations: ".PHP_EOL.$this->_setProbableTreasureCoord($up, $right, $down).PHP_EOL;
+
+            echo PHP_EOL."Treasure Location: [".$this->treasure->row.",".$this->treasure->column."]".PHP_EOL;
 
             if ($this->found == true) {
                 echo PHP_EOL."Wohooo!!! Congratulations, You found the treasure...".PHP_EOL;
@@ -70,17 +73,13 @@
                     case "right":
                         $currColumn = ($this->position->column + 1);
                         $this->_isTreasureFound($this->position->row, $currColumn);
-                        if($currColumn >= 0) {
-                            $this->_generatePlayerPosition($this->position->row, $currColumn);
-                        }
+                        $this->_generatePlayerPosition($this->position->row, $currColumn);
                         break;
                     case "up":
                     case "down":
                         $currRow = ($navigate == "down") ? ($this->position->row + 1) : ($this->position->row - 1);
                         $this->_isTreasureFound($currRow, $this->position->column);
-                        if($currRow >= 0) {
-                            $this->_generatePlayerPosition($currRow, $this->position->column);
-                        }
+                        $this->_generatePlayerPosition($currRow, $this->position->column);
                         break;
                 }
                 $val--;
@@ -95,26 +94,25 @@
 
             $listTreasureCoord = [];
             foreach($this->clearPath as $key => $coord) {
-                $listTreasureCoord[] = "({$coord->row}, {$coord->column})";
+                $listTreasureCoord[] = [$coord->row, $coord->column];
                 $this->coord[$coord->row][$coord->column] = "\e[1;37m$\e[0m";
             }
             $this->coord[$this->treasure->row][$this->treasure->column] = "\e[1;32m".($this->found == true ? 'X':'$')."\e[0m";
-
-            return implode(PHP_EOL, $listTreasureCoord);
+            return json_encode($listTreasureCoord);
         }
 
         private function _generateGrid()
         {
             for ($x = 0; $x < count($this->coord); $x++) {
                 for ($y = 0; $y < count(max($this->coord)); $y++) {
-                    if($this->coord[$x][$y] == "." || $this->coord[$x][$y] == "$")
+                    if($this->coord[$x][$y] == $this->clearPathIcon || $this->coord[$x][$y] == $this->treasureIcon)
                     {
                         $clearPath = new stdClass();
                         $clearPath->row = $x;
                         $clearPath->column = $y;
                         $this->clearPath["{$clearPath->row}::{$clearPath->column}"] = $clearPath;
                     }
-                    echo $this->coord[$x][$y];
+                    echo "  ".$this->coord[$x][$y];
                 }
                 echo PHP_EOL;
             }
@@ -122,14 +120,16 @@
 
         private function _generatePlayerPosition($row, $column)
         {
-            if($this->coord[$row][$column] == "."){
-                $this->coord[$row][$column] = "\e[0;31mX\e[0m";
+            if($row >= 0 || $column >= 0){
+                if($this->coord[$row][$column] == $this->clearPathIcon || $this->coord[$row][$column] == $this->treasureIcon){
+                    $this->coord[$row][$column] = "\e[0;31mX\e[0m";
 
-                $this->position->row = $row;
-                $this->position->column = $column;
-                
-                if(array_key_exists($row."::".$column, $this->clearPath)) {
-                    unset($this->clearPath[$row."::".$column]);
+                    $this->position->row = $row;
+                    $this->position->column = $column;
+                    
+                    if(array_key_exists($row."::".$column, $this->clearPath)) {
+                        unset($this->clearPath[$row."::".$column]);
+                    }
                 }
             }
         }
